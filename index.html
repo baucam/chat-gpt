@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bot Hola con Voz</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f7f7fb;
+      color: #1f2937;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    main {
+      width: min(560px, 100%);
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 1.6rem;
+    }
+
+    .descripcion {
+      margin-top: 0;
+      color: #4b5563;
+      font-size: 0.95rem;
+    }
+
+    .controles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    button {
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    #btn-iniciar { background: #2563eb; color: #fff; }
+    #btn-pausar { background: #f59e0b; color: #111827; }
+    #btn-reiniciar { background: #10b981; color: #062e25; }
+
+    .estado {
+      margin: 0 0 12px;
+      font-weight: 600;
+    }
+
+    #holas {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fafafa;
+      height: 220px;
+      overflow-y: auto;
+      padding: 10px;
+      text-align: left;
+    }
+
+    #holas p {
+      margin: 4px 0;
+      font-family: monospace;
+    }
+
+    #aviso-voz {
+      color: #b45309;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Bot de "hola" con voz</h1>
+    <p class="descripcion">Repite "hola" cada 500 ms, lo muestra en pantalla y actualiza el contador.</p>
+
+    <p class="estado">Veces que dijo hola: <span id="contador">0</span></p>
+
+    <div class="controles">
+      <button id="btn-iniciar" type="button">Iniciar</button>
+      <button id="btn-pausar" type="button">Pausar</button>
+      <button id="btn-reiniciar" type="button">Reiniciar contador</button>
+    </div>
+
+    <div id="holas" aria-live="polite" aria-label="Historial de holas"></div>
+    <p id="aviso-voz">Tu navegador no soporta síntesis de voz. El contador seguirá funcionando sin audio.</p>
+  </main>
+
+  <script>
+    const holasDiv = document.getElementById('holas');
+    const contadorSpan = document.getElementById('contador');
+    const btnIniciar = document.getElementById('btn-iniciar');
+    const btnPausar = document.getElementById('btn-pausar');
+    const btnReiniciar = document.getElementById('btn-reiniciar');
+    const avisoVoz = document.getElementById('aviso-voz');
+
+    const INTERVALO_MS = 500;
+
+    let contador = 0;
+    let intervalo = null;
+
+    const soportaVoz = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+    if (!soportaVoz) {
+      avisoVoz.style.display = 'block';
+    }
+
+    function reproducirHola() {
+      if (!soportaVoz) return;
+
+      // Evita que se acumulen audios pendientes en intervalos muy rápidos.
+      if (speechSynthesis.speaking || speechSynthesis.pending) {
+        speechSynthesis.cancel();
+      }
+
+      const utterance = new SpeechSynthesisUtterance('hola');
+      utterance.lang = 'es-ES';
+      speechSynthesis.speak(utterance);
+    }
+
+    function decirHola() {
+      contador += 1;
+      contadorSpan.textContent = String(contador);
+
+      const p = document.createElement('p');
+      p.textContent = `${contador}. hola`;
+      holasDiv.appendChild(p);
+      holasDiv.scrollTop = holasDiv.scrollHeight;
+
+      reproducirHola();
+    }
+
+    function iniciar() {
+      if (intervalo !== null) return;
+      intervalo = setInterval(decirHola, INTERVALO_MS);
+    }
+
+    function pausar() {
+      if (intervalo !== null) {
+        clearInterval(intervalo);
+        intervalo = null;
+      }
+      if (soportaVoz) {
+        speechSynthesis.cancel();
+      }
+    }
+
+    function reiniciar() {
+      pausar();
+      contador = 0;
+      contadorSpan.textContent = '0';
+      holasDiv.innerHTML = '';
+      iniciar();
+    }
+
+    btnIniciar.addEventListener('click', iniciar);
+    btnPausar.addEventListener('click', pausar);
+    btnReiniciar.addEventListener('click', reiniciar);
+
+    iniciar();
+  </script>
+</body>
+</html>
